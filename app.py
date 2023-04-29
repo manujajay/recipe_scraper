@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Comment
 import re
 
 
@@ -19,7 +19,7 @@ def scrape_ingredients(url):
     soup = BeautifulSoup(response.text, 'html.parser')
 
     # Find the ingredients container
-    ingredients_container = soup.find('ul', class_='list')
+    ingredients_container = soup.find('section', class_='recipe__ingredients')
 
     if not ingredients_container:
         return []
@@ -27,14 +27,15 @@ def scrape_ingredients(url):
     # Extract ingredients and quantities from the container
     ingredients = []
     for li in ingredients_container.find_all('li', class_='list-item'):
-        # Combine the text of all child elements
-        ingredient_text = ' '.join([child.text for child in li.contents if child.string])
-        ingredient_text = ingredient_text.strip()
+        # Remove HTML comments
+        for comment in li.find_all(text=lambda text: isinstance(text, Comment)):
+            comment.extract()
+
+        ingredient_text = li.text.strip()
         if ingredient_text:
             ingredients.append(ingredient_text)
 
     return ingredients
-
 
 if __name__ == '__main__':
     app.run(debug=True)
